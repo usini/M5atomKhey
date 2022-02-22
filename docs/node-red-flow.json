@@ -1,0 +1,87 @@
+[
+    {
+        "id": "aba30ac2a9239b17",
+        "type": "tab",
+        "label": "Test Flow",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "984e52f8648cf6cf",
+        "type": "debug",
+        "z": "aba30ac2a9239b17",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 550,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "d1d8bf5eaea8179b",
+        "type": "inject",
+        "z": "aba30ac2a9239b17",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "0 0-23 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 130,
+        "y": 160,
+        "wires": [
+            [
+                "b39c91dd3ea44ae3"
+            ]
+        ]
+    },
+    {
+        "id": "b39c91dd3ea44ae3",
+        "type": "function",
+        "z": "aba30ac2a9239b17",
+        "name": "",
+        "func": "const d = new Date();\nlet hour = d.getHours();\nif (hour < 10) {\n    hour = \"0\" + hour;\n}\nmsg.payload = hour\nmsg.url = \"http://192.168.0.15/text?param=\" + msg.payload;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 260,
+        "y": 160,
+        "wires": [
+            [
+                "c9cf0e03c2c2e601"
+            ]
+        ]
+    },
+    {
+        "id": "c9cf0e03c2c2e601",
+        "type": "http request",
+        "z": "aba30ac2a9239b17",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "senderr": false,
+        "x": 410,
+        "y": 160,
+        "wires": [
+            [
+                "984e52f8648cf6cf"
+            ]
+        ]
+    }
+]
