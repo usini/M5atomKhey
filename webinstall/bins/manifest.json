@@ -1,0 +1,28 @@
+{
+    "name": "M5AtomKhey",
+    "new_install_prompt_erase": true,
+    "builds": [
+        {
+            "chipFamily": "ESP32",
+            "improv": false,
+            "parts": [
+                {
+                    "path": "bootloader.bin",
+                    "offset": 4096
+                },
+                {
+                    "path": "boot_app0.bin",
+                    "offset": 57344
+                },
+                {
+                    "path": "partitions.bin",
+                    "offset": 32768
+                },
+                {
+                    "path": "firmware.bin",
+                    "offset": 65536
+                }
+            ]
+        }
+    ]
+}

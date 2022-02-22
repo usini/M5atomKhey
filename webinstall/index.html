@@ -1,0 +1,201 @@
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <img src="usini_logo.png"><br>
+    <video width="320" height="240" autoplay muted loop>
+        <source src="M5AtomKhey.mp4" type="video/mp4">
+    </video>
+    <br>
+    <script type="module" src="https://unpkg.com/esp-web-tools@3.4.2/dist/web/install-button.js?module"></script>
+    <esp-web-install-button id="installButton" manifest="bins/manifest.json"></esp-web-install-button>
+    <div> ⚠️ You need to 🔁 reboot the M5Atom manually after install ⚠️</div>
+    <h1 id="ip">Connect -> Reboot to load settings</h1>
+    Name
+    <br>
+    <input id="name" type="text">
+    <br>
+    SSID
+    <br>
+    <input id="ssid" type="text">
+    <br>
+    Password
+    <br>
+    <input id="pass" type="text">
+    <br>
+    TimeZone
+    <br>
+    <input id="timezone" type="text"><a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"> TimeZone</a>
+    <br><br>
+    <button onclick="connect()">Connect</button>
+    <button disabled id="btn_send" onclick="setup()">Send</button>
+    <button disabled id="btn_reboot" onclick="reboot()">Reboot</button>
+    <br>
+    <div id="target"></div>
+    <div id="notSupported" style="display: none;">
+        Your browser does not support the Web Serial API.
+    </div>
+    <br>
+    Text
+    <input id="text" type="text">
+    <button disabled id="btn_text" onclick="text()">Send</button>
+    <a href="" id="text_url"></a>
+    <h1>Useful Links</h1>
+    <a href="https://github.com/usini/M5AtomKhey">Source code</a><br>
+    <a href="https://www.ledfx.app/download-ledfx/">LedFx - Make the matrix react to the sound!</a><br>
+    <a href="https://vb-audio.com/Voicemeeter/index.htm">VoiceMeeter (if you doesn't have StereoMix / microphone)</a><br>
+    <a href="https://install.wled.me/">Install WLED instead (Limit the brightness of the LED to 400ma max!!!!)</a>
+    <h1>Status LED</h1>
+    <li>🔵 Starting...</li>
+    <li>⚪ Formating (Please wait)</li>
+    <li>🔴 Not Connected</li>
+
+    <script>
+        writer_buffer = [];
+        name_ok = false;
+        ssid_ok = false;
+        pass_ok = false;
+        timezone_ok = false;
+
+        // Get Timezone from Web Browser
+        document.getElementById("timezone").value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+        // Callback when text arrived on Serial Port
+        function serialRead(value) {
+            console.log(value);
+            if(value.includes("SSID:")) {
+                document.getElementById("ssid").value = value.split(":")[1];
+            }
+            if(value.includes("IP:")) {
+                document.getElementById("ip").innerHTML = value.split(":")[1];
+            }
+            if(value.includes("NAME:")) {
+                document.getElementById("name").value = value.split(":")[1];
+            }
+            if(value == "Name set"){
+                name_ok = true;
+            }
+            if(value == "SSID set"){
+                ssid_ok = true;
+            }
+            if(value == "Pass set"){
+                pass_ok = true;
+            }
+            if(value == "Timezone set"){
+                timezone_ok = true;
+            }
+            if(timezone_ok && ssid_ok && pass_ok){
+                document.getElementById("target").innerHTML = "Setup complete - Reboot";
+                reboot();
+                name_ok = false;
+                timezone_ok = false;
+                ssid_ok = false;
+                pass_ok = false;
+            }
+            document.getElementById("target").innerHTML = value;
+        }
+
+        // Send a text to the Matrix
+        function text() {
+            command = "/text?param=" + document.getElementById("text").value
+            write(command);
+            url = "http://" + document.getElementById("name").value + ".local"
+            document.getElementById("text_url").innerHTML = url + command;
+            document.getElementById("text_url").href = url + command;
+        }
+
+        // Send Setup settings to the Matrix
+        function setup() {
+            name = document.getElementById("name").value;
+            ssid = document.getElementById("ssid").value;
+            pass = document.getElementById("pass").value;
+            timezone = document.getElementById("timezone").value;
+            timezone = timezone.replace("/","-");
+            /* This is highly not optimized, should wait for returning Set messsage and send next message / or retry*/
+            write("/ssid?param=" + ssid);
+            setTimeout(function(){write("/name?param=" + name);}, 200);
+            setTimeout(function(){write("/pass?param=" + pass);}, 400);
+            setTimeout(function(){write("/timezone?param=" + timezone);}, 600);
+        }
+
+        // Reboot the Matrix
+        function reboot() {
+            write("/reboot");
+        }
+
+        // Send a message to the Matrix
+        async function write(text){
+            console.log(text);
+            await writer.write(text + "\r\n");
+            // Allow the serial port to be closed later.
+        }
+
+        // Connect to Serial
+        function connect(){
+            if (navigator.serial) {
+                connectSerial();
+            } else {
+                alert('Web Serial API not supported, use Chrome or Edge.');
+            }
+        }
+        
+        // CopyPasta from https://web.dev/serial/
+        class LineBreakTransformer {
+            constructor() {
+                this.container = '';
+            }
+            
+            transform(chunk, controller) {
+                this.container += chunk;
+                const lines = this.container.split('\r\n');
+                this.container = lines.pop();
+                lines.forEach(line => controller.enqueue(line));
+            }
+            
+            flush(controller) {
+                controller.enqueue(this.container);
+            }
+        }
+        
+        async function readLoop() {
+            let i = 0;
+            while (true) {
+                const { value, done } = await reader.read();
+                if (value) {
+                    serialRead(value);
+                    if (done) {
+                        console.log("[readLoop] DONE", done);
+                        reader.releaseLock();
+                        break;
+                    }
+                }
+            }
+        }
+        
+        async function connectSerial() {
+            const log = document.getElementById('target');
+            
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+                let decoder = new TextDecoderStream();
+                inputDone = port.readable.pipeTo(decoder.writable);
+                inputStream = decoder.readable.pipeThrough(
+                new TransformStream(new LineBreakTransformer())
+                );
+                const textEncoder = new TextEncoderStream();
+                const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
+                writer = textEncoder.writable.getWriter();
+                
+                reader = inputStream.getReader();
+                readLoop();
+                document.getElementById("btn_send").disabled = false;
+                document.getElementById("btn_reboot").disabled = false;
+                document.getElementById("btn_text").disabled = false;
+                
+            } catch (error) {
+                log.innerHTML = error;
+            }
+        }
+    </script>
+</body>
