@@ -84,7 +84,7 @@ String SpiffsToVar(String file, String default_var) {
       f = SPIFFS.open(file, FILE_READ);
       var = f.readString();
     } else {
-      f = SPIFFS.open("/ssid", FILE_WRITE);
+      f = SPIFFS.open(file, FILE_WRITE);
       f.print(default_var);
       var = default_var;
     }
