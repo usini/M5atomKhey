@@ -2,7 +2,7 @@
     Name: M5Atom Matrix Khey
     Author: µsini
     Licence: MIT
-    Version: Alpha v0.1
+    Version: Alpha v0.2
 
     E131 - Clock - Text Scroller in one package !
     --> ⌨️ 🔴🟡🟢 🎶 Use LedFX to enjoy a tiny light show sync with your music or the sound of your keyboard!
@@ -35,47 +35,56 @@
 String ssid = "";
 String passphrase = "";
 
-/* Matrix */
+/* LED Matrix
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+*/
 #define PIN 27
 #define mw 5
 #define mh 5
 #define NUMMATRIX (mw*mh)
 int x    = mh; // Use to scroll the matrix
+
 CRGB matrixleds[NUMMATRIX];
 FastLED_NeoMatrix *matrix = new FastLED_NeoMatrix(matrixleds, mw, mh,
     NEO_MATRIX_TOP     + NEO_MATRIX_RIGHT +
     NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE );
 
 /* Button */
-ezButton button(39);
+ezButton button(39); // 🔘 Button behind the LED Matrix
 bool mode = false;
-bool text_received = false;
 
 /* WiFi Objects */
-WiFiServer server(80);
-aREST rest = aREST();
-ESPAsyncE131 e131(10);
-Timezone myTZ;
+WiFiServer server(80); // 🌐 Create a server on port 80
+aREST rest = aREST();  // 🌐 Create a aREST object
+ESPAsyncE131 e131(10); // 🌐 Create a E131 (DMX) server
 
 /* String Objects */
-// This is stupidly not optimized 😭
-String timeString = "";
-String textString = "No text";
-String tzString = "Europe/Paris";
-String nameString = "atom";
+// TODO : Use char pointer instead of String
+String timeString = ""; // ⏲ Time display on led matrix
+String textString = "No text"; // 📄 Text display on led matrix
+bool text_received = false;
+
+Timezone myTZ;
+String tzString = "Europe/Paris"; // 🗺️ Timezone
+String nameString = "atom"; // 🏷️ Name of the device
 
 // Use freeRTOS for the button (mostly to test if this make sense)
 TaskHandle_t Core0;
 
-// Rest Command (Serial/Web)
+// 🌐 Rest Command (Serial/Web)
 int textControl(String command);
 int ssidControl(String command);
 int passControl(String command);
 int rebootControl(String command);
 int timeZoneControl(String command);
 int nameControl(String command);
+int ssidScan(String command);
 
-// Convert a Spiffs file into a variable (check if exists or create with default var)
+// 💾 Convert a Spiffs file into a variable (check if exists or create with default var)
 // Easier than manage a config file in JSON (probably not as correct)
 String SpiffsToVar(String file, String default_var) {
     String var = "";
@@ -92,7 +101,7 @@ String SpiffsToVar(String file, String default_var) {
     return var;
 }
 
-// Setup all variables (SSID/PASS/TIMEZONE/NAME)
+// 💾 Setup all variables (SSID/PASS/TIMEZONE/NAME)
 void spiffsSetup() {
   if (!SPIFFS.begin(true)) {
 
@@ -118,14 +127,18 @@ void spiffsSetup() {
 void backTask( void * pvParameters) {
   for(;;) {
     button.loop();
-
+    // 🔘 Button pressed and released
     if (button.isReleased()) {
       if (text_received) {
         text_received = false;
       } else {
-        Serial.print("Mode: ");
-        Serial.println(mode);
         mode = !mode;
+        Serial.print("Mode: ");
+        if(mode){
+          Serial.println(" E131");
+        } else {
+          Serial.println(" Clock");
+        }
       }
     }
   }
@@ -144,21 +157,32 @@ void setup() {
   matrix->setBrightness(40);
   matrix->setTextColor(matrix->Color(255, 0, 0));
 
-  //🔵 Blue Led means startup in progress
+  /* Blue Led means startup in progress
+    ⬛⬛⬛🟦
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+  */
   matrixleds[0].r = 0;
   matrixleds[0].g = 0;
   matrixleds[0].b = 255;
   FastLED.show();
 
+  //💾 Setup Spiffs files (use for ⚙️ settings)
   spiffsSetup();
 
-  // Generate REST functions and callback
+  Serial.print("NAME:");
+  Serial.println(nameString);
+
+  // 🌐 Generate REST functions and callback
   rest.function("text", textControl);
   rest.function("ssid",ssidControl);
   rest.function("pass",passControl);
   rest.function("timezone",timeZoneControl);
   rest.function("reboot",rebootControl);
   rest.function("name",nameControl);
+  rest.function("scan",ssidScan);
 
   // Starting WiFi
   WiFi.mode(WIFI_STA);
@@ -170,28 +194,33 @@ void setup() {
     Serial.println("Waiting for SSID to be set...");
   }
 
-  // 🔴 Red Led means connection in progress
+    /* Red Led means WiFi connection started ()
+    ⬛⬛⬛🟥
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+    ⬛⬛⬛⬛
+  */
   matrixleds[0].r = 255;
   matrixleds[0].g = 0;
   matrixleds[0].b = 0;
   FastLED.show();
 
-  // Wait for connection to established (Rest Serial is active to change settings and reboot)
+  // 📡 Wait for connection to established
+  // 📲 Rest Serial is active to change settings and reboot
   while (WiFi.status() != WL_CONNECTED) {
     rest.handle(Serial);
     delay(10);
   }
 
   // Display IP/Name (this is used by the Web Installer)
-  Serial.println("");
-  Serial.print(F("IP: "));
+  Serial.print("IP: ");
   Serial.println(WiFi.localIP());
   if (!MDNS.begin(nameString.c_str())) {
-    Serial.println("Error starting mDNS");
+    Serial.println("ERROR: can't start mDNS");
     return;
   }
-  Serial.print("NAME:");
-  Serial.println(nameString);
+
 
   // Start NTP and wait for time
   waitForSync();
@@ -204,7 +233,7 @@ void setup() {
   if (e131.begin(E131_UNICAST))
     Serial.println("E131: READY");
   else
-    Serial.println("E131: FAILED");
+    Serial.println("ERROR: E131 FAILED");
 
   // Start Core0 Task (BackTask)
   disableCore0WDT();
@@ -279,7 +308,7 @@ int textControl(String command) {
 }
 
 // Change SSID http://atom.local/ssid?param=MySSID
-int ssidControl(String command){
+int ssidControl(String command) {
   ssid = command;
   Serial.println("SSID set");
   File f = SPIFFS.open("/ssid", FILE_WRITE);
@@ -320,8 +349,19 @@ int nameControl(String command) {
 }
 
 // Reboot http://atom.local/reboot
-int rebootControl(String command){
+int rebootControl(String command) {
   Serial.println("reboot");
   ESP.restart();
+  return 1;
+}
+
+int ssidScan(String command) {
+  Serial.println("Scanning SSID");
+  int n = WiFi.scanNetworks();
+  for(int i=0;i<n;i++) {
+    Serial.print("SSIDS:");
+    Serial.println(WiFi.SSID(i));
+  }
+  Serial.println("Scan end");
   return 1;
 }

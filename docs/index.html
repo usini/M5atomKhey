@@ -1,65 +1,157 @@
+<!DOCTYPE HTML>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>M5AtomKhey</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1; charset=utf-8">
+    <link href="framework/rpgui.min.css" rel="stylesheet" type="text/css">
+    <style>
+        body {
+            background: #4e4a4e;
+        }
+        .rpgui-icon {
+            width:32px;
+            height:32px;
+        }
+        .rpgui-icon.wifi {
+          background-image: url("wifi.png");
+        }
+        .rpgui-icon.password {
+          background-image: url("password.png");
+        }
+        .rpgui-icon.tag {
+            background-image: url("tag.png");
+        }
+        .rpgui-icon.map {
+            background-image: url("map.png");
+        }
+        .rpgui-icon.firefox {
+            background-image: url("firefox.png");
+        }
+        .rpgui-icon.edge {
+            background-image: url("edge.png");
+        }
+        .rpgui-icon.chrome {
+            background-image: url("chrome.png");
+        }
+        .simple-select{
+            color:white;
+            background: #4e4a4e;
+            height:40px;
+            width:100%
+        }
+    </style>
 </head>
 <body>
-    <img src="usini_logo.png"><br>
-    <video width="320" height="240" autoplay muted loop>
-        <source src="M5AtomKhey.mp4" type="video/mp4">
-    </video>
-    <br>
-    <script type="module" src="https://unpkg.com/esp-web-tools@3.4.2/dist/web/install-button.js?module"></script>
-    <esp-web-install-button id="installButton" manifest="bins/manifest.json"></esp-web-install-button>
-    <div> ⚠️ Wait for the 🔴 Red LED to turn on after install ⚠️</div>
-    <h1 id="ip">Click Connect and Reboot to load settings</h1>
-    Name
-    <br>
-    <input id="name" type="text">
-    <br>
-    SSID
-    <br>
-    <input id="ssid" type="text">
-    <br>
-    Password
-    <br>
-    <input id="pass" type="text">
-    <br>
-    TimeZone
-    <br>
-    <input id="timezone" type="text"><a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"> TimeZone</a>
-    <br><br>
-    <button onclick="connect()">Connect</button>
-    <button disabled id="btn_send" onclick="setup()">Send</button>
-    <button disabled id="btn_reboot" onclick="reboot()">Reboot</button>
-    <br>
-    <div id="target"></div>
-    <div id="notSupported" style="display: none;">
-        Your browser does not support the Web Serial API.
-    </div>
-    <br>
-    Text
-    <input id="text" type="text">
-    <button disabled id="btn_text" onclick="text()">Send</button>
-    <a href="" id="text_url"></a>
-    <h1>Useful Links</h1>
-    <a href="https://github.com/usini/M5AtomKhey">Source code</a><br>
-    <a href="node-red-flow.json">Node-Red Example</a><br>
-    <a href="https://www.ledfx.app/download-ledfx/">LedFx - Make the matrix react to the sound!</a><br>
-    <a href="https://vb-audio.com/Voicemeeter/index.htm">VoiceMeeter (if you doesn't have StereoMix / microphone)</a><br>
-    <a href="https://install.wled.me/">Install WLED instead (Limit the brightness of the LED to 400ma max!!!!)</a>
-    <h1>Status LED</h1>
-    <li>🔵 Starting...</li>
-    <li>⚪ Format (Please wait)</li>
-    <li>🔴 Not Connected / Ready to setup</li>
 
+    <div style="position:relative" class="rpgui-content">
+    <div class="rpgui-container framed" style="position:relative;width:100%;">
+        <h1 style="font-size: 40px;"><span style="text-shadow:none;color:red">µ</span><span style="text-shadow:none;color:black;">sini</span> M5AtomKhey</h1>
+        <video style="padding:0px;position:relative; display: block; margin-left: auto;margin-right: auto;" width="320" height="240" autoplay muted loop>
+            <source src="M5AtomKhey.mp4" type="video/mp4">
+        </video>
+        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick="buy();"><p>Buy M5Atom</p></button>
+        <script type="module" src="https://unpkg.com/esp-web-tools@3.4.2/dist/web/install-button.js?module"></script>
+        <esp-web-install-button id="installButton" manifest="bins/manifest.json">
+        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick='showInstructions();' slot="activate"><p>Install</p></button>
+        <span slot="unsupported">
+            <h1>
+            ⚠️ Installer not supported by Firefox, use Edge/Chrome instead! 
+            <div class="rpgui-icon firefox"></div>
+            <div class="rpgui-icon edge"></div>
+            <div class="rpgui-icon chrome"></div>
+            </h1>
+        </span>
+        </esp-web-install-button>
+    </div>
+
+    <div class="rpgui-container framed" style="position:relative">
+        <h1 style="position:relative" class="rpgui-container framed-golden"> Settings </h1>
+        <h1 id="instructions" style="visibility:hidden;"> ⚠️ Wait for the RED Led ⬛⬛⬛⬛🟥, then</h1>
+        <h1 id="ip">Click <button class="rpgui-button" onclick="connect()">Connect</button> to load settings</h1>
+        <label><div class="rpgui-icon tag"></div>Name</label>
+        <input disabled id="name" type="text">
+        <label><div class="rpgui-icon wifi"></div> WiFi Network Name <button onclick="scanSSIDS()">Scan</button></label>
+        <input disabled id="ssid" type="text">
+        <label><div class="rpgui-icon password"> </div> WiFi Password </label><button id="showPass" onclick="showPassword()">Show</button>
+        <input disabled id="pass" type="password">
+        <label><div class="rpgui-icon map"></div> TimeZone (AutoSet)</label><br>
+        <select disabled class="simple-select" id="timezone">
+
+        </select>
+        <br>
+        <button class="rpgui-button" onclick="connect()">Connect</button>
+        <button class="rpgui-button" disabled id="btn_send" onclick="setup()">Send</button>
+        <button class="rpgui-button" disabled id="btn_reboot" onclick="reboot()">Reboot</button>
+        <br>
+        <div id="target"></div>
+        <div id="notSupported" style="display: none;">
+            Your browser does not support the Web Serial API.
+        </div>
+    </div>
+
+    <div style="position:relative;" class="rpgui-container framed">
+        <br>
+        <label>Text</label>
+        <input id="text" type="text">
+        <button class="rpgui-button" disabled id="btn_text" onclick="text()">Display</button>
+        <a href="" id="text_url"></a>
+        <h1>Useful Links</h1>
+        <li><a href="https://github.com/usini/M5AtomKhey">Source code</a></li>
+        <li><a href="node-red-flow.json">Node-Red Example</a></li>
+        <li><a href="https://www.ledfx.app/download-ledfx/">LedFx - Make the matrix react to the sound!</a></li>
+        <li><a href="https://vb-audio.com/Voicemeeter/index.htm">VoiceMeeter (if you doesn't have StereoMix / microphone)</a></li>
+        <li><a href="https://install.wled.me/">Install WLED instead (Limit the brightness of the LED to 400ma max!!!!)</a></li>
+    </div>
+
+    <script src="timezone.js"></script>
+    <script src="framework/rpgui.min.js"></script>
     <script>
+
+        ssids_list = [];
         writer_buffer = [];
         name_ok = false;
         ssid_ok = false;
         pass_ok = false;
         timezone_ok = false;
 
+        function scanSSIDS(){
+            ssids_list = [];
+            write("/scan");
+        }
+
+        function showInstructions(){
+            document.getElementById("instructions").style.visibility = "visible";
+        }
+
         // Get Timezone from Web Browser
-        document.getElementById("timezone").value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        for (var i = 0; i < timeZones.length; i++) {
+            var opt = document.createElement("option");
+            opt.value = timeZones[i];
+            opt.text = timeZones[i]
+            if(timeZones[i] == Intl.DateTimeFormat().resolvedOptions().timeZone){
+                opt.selected = true;
+            }
+            document.getElementById("timezone").add(opt);
+        }
+
+
+        function buy(){
+            window.open("https://shop.m5stack.com/products/atom-matrix-esp32-development-kit");
+            target="_blank";
+        }
+
+        function showPassword() {
+            let pass = document.getElementById("pass");
+            if(pass.type == "password"){
+                console.log("Show")
+                document.getElementById("showPass").innerHTML = "Hide";
+                pass.type = "text";
+            } else {
+                console.log("Hide")
+                document.getElementById("showPass").innerHTML = "Show";
+                pass.type = "password";
+            }
+        }
 
         // Callback when text arrived on Serial Port
         function serialRead(value) {
@@ -73,6 +165,25 @@
             if(value.includes("NAME:")) {
                 document.getElementById("name").value = value.split(":")[1];
             }
+
+            if(value.includes("SSIDS:")) {
+                ssids_list.push(value.split(":")[1]);
+            }
+
+            if(value == "Scan end") {
+                targetItem = document.getElementById("ssid");
+                newItem = document.createElement("select");
+                newItem.id = "ssid";
+                newItem.className = "simple-select";
+                targetItem.parentNode.replaceChild(newItem,targetItem)
+                for (var i = 0; i < ssids_list.length; i++) {
+                    var opt = document.createElement("option");
+                    opt.value = ssids_list[i];
+                    opt.text = ssids_list[i]
+                    document.getElementById("ssid").add(opt);
+                }
+            }
+
             if(value == "Name set"){
                 name_ok = true;
             }
@@ -189,7 +300,12 @@
                 writer = textEncoder.writable.getWriter();
                 
                 reader = inputStream.getReader();
+                reboot();
                 readLoop();
+                document.getElementById("name").disabled = false;
+                document.getElementById("ssid").disabled = false;
+                document.getElementById("pass").disabled = false;
+                document.getElementById("timezone").disabled = false;
                 document.getElementById("btn_send").disabled = false;
                 document.getElementById("btn_reboot").disabled = false;
                 document.getElementById("btn_text").disabled = false;
