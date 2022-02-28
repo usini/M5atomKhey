@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <title>M5AtomKhey</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="framework/rpgui.min.css" rel="stylesheet" type="text/css">
     <style>
         body {
@@ -49,61 +49,107 @@
         <video style="padding:0px;position:relative; display: block; margin-left: auto;margin-right: auto;" width="320" height="240" autoplay muted loop>
             <source src="M5AtomKhey.mp4" type="video/mp4">
         </video>
-        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick="buy();"><p>Buy M5Atom</p></button>
+        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick="buy();"><p data-i18n="button.buy">Buy M5Atom</p></button>
         <script type="module" src="https://unpkg.com/esp-web-tools@3.4.2/dist/web/install-button.js?module"></script>
         <esp-web-install-button id="installButton" manifest="bins/manifest.json">
-        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick='showInstructions();' slot="activate"><p>Install</p></button>
+        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick='showInstructions();' slot="activate"><p data-i18n="button.install">Install</p></button>
         <span slot="unsupported">
             <h1>
-            ⚠️ Installer not supported by Firefox, use Edge/Chrome instead! 
+            ⚠️ <span data-i18n="header.not-supported">Installer not supported by Firefox, use Edge/Chrome instead!</span>
             <div class="rpgui-icon firefox"></div>
             <div class="rpgui-icon edge"></div>
             <div class="rpgui-icon chrome"></div>
             </h1>
         </span>
         </esp-web-install-button>
+        <br>
+        <h1>
+        <audio id="music" style="position:relative;width:100%;" loop>
+            <source id="music_sauce" src="castle.mp3" type="audio/mpeg">
+        </audio>
+        
+            <div> 
+                <button onclick="play_pause_music()">🎶</button> 
+                <button onclick="document.getElementById('music').volume += 0.2">+</button> 
+                <button onclick="document.getElementById('music').volume -= 0.2">-</button> 
+              </div>
+        </h1>
+        
     </div>
 
     <div class="rpgui-container framed" style="position:relative">
-        <h1 style="position:relative" class="rpgui-container framed-golden"> Settings </h1>
-        <h1 id="instructions" style="visibility:hidden;"> ⚠️ Wait for the RED Led ⬛⬛⬛⬛🟥, then</h1>
-        <h1 id="ip">Click <button class="rpgui-button" onclick="connect()">Connect</button> to load settings</h1>
-        <label><div class="rpgui-icon tag"></div>Name</label>
+        <h1 style="position:relative" class="rpgui-container framed-golden" data-i18n="header.settings"> Settings </h1>
+
+        <h1 id="instructions" style="display:none;"> ⚠️ <span data-i18n="text.instructions1">Wait for the RED Led to turn on</span> ⬛⬛⬛⬛🟥, <span data-i18n="text.instructions2">then</span></h1>
+
+        <h1 id="ip">
+            <span data-i18n="text.instructions3">Click</span>
+            <button data-i18n="button.connect"class="rpgui-button" onclick="connect()">Connect</button>
+            <span data-i18n="text.instructions4">to load settings</span>
+        </h1>
+
+        <label>
+            <div class="rpgui-icon tag"></div>
+            <span data-i18n="label.name">Name</span>
+        </label>
+
         <input disabled id="name" type="text">
-        <label><div class="rpgui-icon wifi"></div> WiFi Network Name <button onclick="scanSSIDS()">Scan</button></label>
+        <label>
+            <div class="rpgui-icon wifi"></div>
+            <span data-i18n="label.ssid">WiFi Network Name</span>
+            <button data-i18n="button.scan" onclick="scanSSIDS()">Scan</button>
+            </button>
+        </label>
+
         <input disabled id="ssid" type="text">
-        <label><div class="rpgui-icon password"> </div> WiFi Password </label><button id="showPass" onclick="showPassword()">Show</button>
+        <label>
+            <div class="rpgui-icon password"></div>
+            <span data-i18n="label.password">WiFi Password</span>
+        </label>
+        <button id="showPass" data-i18n="button.show" onclick="showPassword()">Show</button>
+
         <input disabled id="pass" type="password">
-        <label><div class="rpgui-icon map"></div> TimeZone (AutoSet)</label><br>
+        <label>
+            <div class="rpgui-icon map"></div>
+            <span data-i18n="label.timezone">Timezone</span>
+        </label>
         <select disabled class="simple-select" id="timezone">
 
         </select>
-        <br>
-        <button class="rpgui-button" onclick="connect()">Connect</button>
-        <button class="rpgui-button" disabled id="btn_send" onclick="setup()">Send</button>
-        <button class="rpgui-button" disabled id="btn_reboot" onclick="reboot()">Reboot</button>
+
+        <button class="rpgui-button" data-i18n="button.connect" id="btn_connect" onclick="connect()">Connect</button>
+        <button class="rpgui-button" data-i18n="button.send" disabled id="btn_send" onclick="setup()">Send</button>
+        <button class="rpgui-button" data-i18n="button.reboot" disabled id="btn_reboot" onclick="reboot()">Reboot</button>
         <br>
         <div id="target"></div>
-        <div id="notSupported" style="display: none;">
-            Your browser does not support the Web Serial API.
-        </div>
     </div>
 
     <div style="position:relative;" class="rpgui-container framed">
         <br>
-        <label>Text</label>
+        <label data-i18n="label.text">Text</label>
         <input id="text" type="text">
-        <button class="rpgui-button" disabled id="btn_text" onclick="text()">Display</button>
+        <button class="rpgui-button" data-i18n="button.display" disabled id="btn_text" onclick="text()">Display</button>
         <a href="" id="text_url"></a>
-        <h1>Useful Links</h1>
-        <li><a href="https://github.com/usini/M5AtomKhey">Source code</a></li>
-        <li><a href="node-red-flow.json">Node-Red Example</a></li>
-        <li><a href="https://www.ledfx.app/download-ledfx/">LedFx - Make the matrix react to the sound!</a></li>
-        <li><a href="https://vb-audio.com/Voicemeeter/index.htm">VoiceMeeter (if you doesn't have StereoMix / microphone)</a></li>
-        <li><a href="https://install.wled.me/">Install WLED instead (Limit the brightness of the LED to 400ma max!!!!)</a></li>
+        <h1 data-i18n="header.links">Useful Links</h1>
+        <li><a data-i18n="links.source" href="https://github.com/usini/M5AtomKhey">Source code</a></li>
+        <li><a data-i18n="links.nodered" href="node-red-flow.json">Node-Red Example</a></li>
+        <li><a data-i18n="links.ledfx" href="https://www.ledfx.app/download-ledfx/">LedFx - Make the matrix react to the sound of your PC!</a></li>
+        <li><a data-i18n="links.voicemeeter" href="https://vb-audio.com/Voicemeeter/index.htm">VoiceMeeter (if you doesn't have StereoMix / microphone)</a></li>
+        <li><a data-i18n="links.wled" href="https://install.wled.me/">Install WLED instead (Limit the brightness of the LED to 400ma max!!!!)</a></li>
+    </div>
+
+    <div style="position:relative;" class="rpgui-container framed">
+        <h1 style="position:relative" class="rpgui-container framed-golden"> <img width="128" height="62" src="ledfx.png"></h1>
+        
+        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick="downloadLedFx();">
+                <p data-i18n="button.download">Download</p>
+        </button>
+        <h1 style="position:relative"> <img style="width:100%" src="ledfx_instructions.png"></h1>
     </div>
 
     <script src="timezone.js"></script>
+    <script src="translator.min.js"></script>
+    <script src="translate.js"></script>
     <script src="framework/rpgui.min.js"></script>
     <script>
 
@@ -114,13 +160,35 @@
         pass_ok = false;
         timezone_ok = false;
 
+        music_play = false;
+        document.getElementById('music').volume = 0.4;
+
+        function change_music(name){
+            document.getElementById('music_sauce').src = name;
+            document.getElementById('music').load();
+            if(music_play){
+                document.getElementById('music').play();
+            }
+            
+        }
+        function play_pause_music() {
+            if(music_play){
+                document.getElementById('music').pause();
+                music_play = false;
+            } else {
+                document.getElementById('music').play();
+                music_play = true;
+            }
+        }
+
         function scanSSIDS(){
             ssids_list = [];
             write("/scan");
         }
 
         function showInstructions(){
-            document.getElementById("instructions").style.visibility = "visible";
+            change_music("attack.mp3");
+            document.getElementById("instructions").style.display = "";
         }
 
         // Get Timezone from Web Browser
@@ -140,15 +208,17 @@
             target="_blank";
         }
 
+        function downloadLedFx(){
+            window.open("https://www.ledfx.app/downloads/dev/LedFx%20Installer.exe");
+        }
+
         function showPassword() {
             let pass = document.getElementById("pass");
             if(pass.type == "password"){
-                console.log("Show")
-                document.getElementById("showPass").innerHTML = "Hide";
+                document.getElementById("showPass").innerHTML = translator.translateForKey('button.hide');
                 pass.type = "text";
             } else {
-                console.log("Hide")
-                document.getElementById("showPass").innerHTML = "Show";
+                document.getElementById("showPass").innerHTML = translator.translateForKey('button.show');
                 pass.type = "password";
             }
         }
@@ -197,7 +267,6 @@
                 timezone_ok = true;
             }
             if(timezone_ok && ssid_ok && pass_ok){
-                document.getElementById("target").innerHTML = "Setup complete - Reboot";
                 reboot();
                 name_ok = false;
                 timezone_ok = false;
@@ -244,31 +313,31 @@
 
         // Connect to Serial
         function connect(){
+            change_music("end.mp3");
             if (navigator.serial) {
                 connectSerial();
             } else {
-                alert('Web Serial API not supported, use Chrome or Edge.');
+                alert(translator.translateForKey('header.not-supported'));
             }
         }
-        
         // CopyPasta from https://web.dev/serial/
         class LineBreakTransformer {
             constructor() {
                 this.container = '';
             }
-            
+
             transform(chunk, controller) {
                 this.container += chunk;
                 const lines = this.container.split('\r\n');
                 this.container = lines.pop();
                 lines.forEach(line => controller.enqueue(line));
             }
-            
+
             flush(controller) {
                 controller.enqueue(this.container);
             }
         }
-        
+
         async function readLoop() {
             let i = 0;
             while (true) {
@@ -283,10 +352,10 @@
                 }
             }
         }
-        
+
         async function connectSerial() {
             const log = document.getElementById('target');
-            
+
             try {
                 port = await navigator.serial.requestPort();
                 await port.open({ baudRate: 115200 });
@@ -298,18 +367,19 @@
                 const textEncoder = new TextEncoderStream();
                 const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
                 writer = textEncoder.writable.getWriter();
-                
+
                 reader = inputStream.getReader();
                 reboot();
                 readLoop();
                 document.getElementById("name").disabled = false;
                 document.getElementById("ssid").disabled = false;
                 document.getElementById("pass").disabled = false;
+                document.getElementById("btn_connect").disabled = true;
                 document.getElementById("timezone").disabled = false;
                 document.getElementById("btn_send").disabled = false;
                 document.getElementById("btn_reboot").disabled = false;
                 document.getElementById("btn_text").disabled = false;
-                
+
             } catch (error) {
                 log.innerHTML = error;
             }

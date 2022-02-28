@@ -1,0 +1,39 @@
+{
+    "button": {
+        "buy":"Acheter un M5Atom",
+        "install":"Installer",
+        "connect":"Connecter",
+        "scan":"Scannez",
+        "show":"Afficher",
+        "hide":"Caché",
+        "send":"Envoyez",
+        "reboot":"Redémarrer",
+        "display":"Afficher",
+        "download":"Téléchargez"
+    },
+    "header": {
+        "settings":"Paramètres",
+        "links":"Liens utiles",
+        "not-supported":"L'installeur ne marche pas sur Firefox, utiliser Edge/Chrome à la place!"
+    },
+    "text": {
+        "instructions1":"Attendez que la LED rouge s'allume",
+        "instructions2":"puis",
+        "instructions3":"Cliquez sur",
+        "instructions4":"pour charger les paramètres"
+    },
+    "label":{
+        "name":"Nom",
+        "ssid":"Nom du réseau WiFi",
+        "password":"Mot de passe WiFi",
+        "timezone":"Fuseau horaire",
+        "text": "Texte"
+    },
+    "links":{
+        "source": "Code source",
+        "nodered": "Example pour Node-Red",
+        "ledfx": "LedFX - Pour faire réagir la matrix au son de votre PC",
+        "voicemeeter": "Voicemeeter - Si vous n'avez pas le Mixage Stéréo ou un Micro",
+        "wled": "Installer WLED à la place (Limitez la luminosité à 400ma max!!)"
+    }
+}
