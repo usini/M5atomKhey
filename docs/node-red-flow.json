@@ -1,13 +1,5 @@
 [
     {
-        "id": "aba30ac2a9239b17",
-        "type": "tab",
-        "label": "Test Flow",
-        "disabled": false,
-        "info": "",
-        "env": []
-    },
-    {
         "id": "984e52f8648cf6cf",
         "type": "debug",
         "z": "aba30ac2a9239b17",
@@ -20,8 +12,8 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 550,
-        "y": 160,
+        "x": 570,
+        "y": 340,
         "wires": []
     },
     {
@@ -35,8 +27,8 @@
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "x": 130,
-        "y": 160,
+        "x": 150,
+        "y": 340,
         "wires": [
             [
                 "b39c91dd3ea44ae3"
@@ -48,14 +40,14 @@
         "type": "function",
         "z": "aba30ac2a9239b17",
         "name": "",
-        "func": "const d = new Date();\nlet hour = d.getHours();\nif (hour < 10) {\n    hour = \"0\" + hour;\n}\nmsg.payload = hour\nmsg.url = \"http://192.168.0.15/text?param=\" + msg.payload;\nreturn msg;",
+        "func": "msg.payload = \"Hello World\"\nmsg.ip = \"192.168.0.15\"\n\nmsg.url = \"http://\" + msg.ip +\"/text?param=\" + msg.payload;\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 260,
-        "y": 160,
+        "x": 280,
+        "y": 340,
         "wires": [
             [
                 "c9cf0e03c2c2e601"
@@ -76,8 +68,8 @@
         "proxy": "",
         "authType": "",
         "senderr": false,
-        "x": 410,
-        "y": 160,
+        "x": 430,
+        "y": 340,
         "wires": [
             [
                 "984e52f8648cf6cf"
