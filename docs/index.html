@@ -70,8 +70,8 @@
         
             <div> 
                 <button onclick="play_pause_music()">🎶</button> 
-                <button onclick="document.getElementById('music').volume += 0.2">+</button> 
-                <button onclick="document.getElementById('music').volume -= 0.2">-</button> 
+                <button onclick="document.getElementById('music').volume += 0.1">+</button> 
+                <button onclick="document.getElementById('music').volume -= 0.1">-</button> 
               </div>
         </h1>
         
@@ -161,7 +161,7 @@
         timezone_ok = false;
 
         music_play = false;
-        document.getElementById('music').volume = 0.4;
+        document.getElementById('music').volume = 0.2;
 
         function change_music(name){
             document.getElementById('music_sauce').src = name;
