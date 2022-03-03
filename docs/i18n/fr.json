@@ -9,7 +9,8 @@
         "send":"Envoyez",
         "reboot":"Redémarrer",
         "display":"Afficher",
-        "download":"Téléchargez"
+        "download":"Téléchargez",
+        "draw": "Dessinez"
     },
     "header": {
         "settings":"Paramètres",
@@ -27,7 +28,8 @@
         "ssid":"Nom du réseau WiFi",
         "password":"Mot de passe WiFi",
         "timezone":"Fuseau horaire",
-        "text": "Texte"
+        "text": "Texte",
+        "draw": "Dessiner"
     },
     "links":{
         "source": "Code source",

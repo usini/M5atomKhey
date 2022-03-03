@@ -26,10 +26,17 @@
 
 // Connectivity
 #include <WiFi.h>
+#include <WiFiClient.h>
 #include <ESPmDNS.h>
+#include <ESPAsyncWebServer.h>
 #include <ESPAsyncE131.h>
 #include <ezTime.h>
+
 #include <aREST.h> // Manage Rest Commands (Serial/Web)
+
+#include "web/web_index.h"
+#include "web/web_script.h"
+
 
 // You can change this if you want the M5Atom Khey to connect to a WiFi network by default
 String ssid = "";
@@ -59,6 +66,7 @@ bool mode = false;
 
 /* WiFi Objects */
 WiFiServer server(80); // 🌐 Create a server on port 80
+AsyncWebServer web(8080);
 aREST rest = aREST();  // 🌐 Create a aREST object
 ESPAsyncE131 e131(10); // 🌐 Create a E131 (DMX) server
 
@@ -67,6 +75,7 @@ ESPAsyncE131 e131(10); // 🌐 Create a E131 (DMX) server
 String timeString = ""; // ⏲ Time display on led matrix
 String textString = "No text"; // 📄 Text display on led matrix
 bool text_received = false;
+bool draw_received = false;
 
 Timezone myTZ;
 String tzString = "Europe/Paris"; // 🗺️ Timezone
@@ -83,6 +92,7 @@ int rebootControl(String command);
 int timeZoneControl(String command);
 int nameControl(String command);
 int ssidScan(String command);
+int draw(String command);
 
 // 💾 Convert a Spiffs file into a variable (check if exists or create with default var)
 // Easier than manage a config file in JSON (probably not as correct)
@@ -131,6 +141,8 @@ void backTask( void * pvParameters) {
     if (button.isReleased()) {
       if (text_received) {
         text_received = false;
+      } else if (draw_received) {
+        draw_received = false;
       } else {
         mode = !mode;
         Serial.print("Mode: ");
@@ -183,6 +195,7 @@ void setup() {
   rest.function("reboot",rebootControl);
   rest.function("name",nameControl);
   rest.function("scan",ssidScan);
+  rest.function("draw",draw);
 
   // Starting WiFi
   WiFi.mode(WIFI_STA);
@@ -226,6 +239,19 @@ void setup() {
   waitForSync();
   myTZ.setLocation(F(tzString.c_str()));
 
+  web.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", APP_INDEX, sizeof(APP_INDEX));
+    response->addHeader("content-encoding", "gzip");
+    request->send(response);
+  });
+
+  web.on("/qrcode.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "application/javascript", APP_SCRIPT, sizeof(APP_SCRIPT));
+    response->addHeader("content-encoding", "gzip");
+    request->send(response);
+  });
+  web.begin();
+
   // Start Arest Web
   server.begin();
 
@@ -250,14 +276,18 @@ void loop() {
   /* E131 Loop */
   bool newpacket = false;
   e131_packet_t packet;
- if (!e131.isEmpty()) {
+if (!e131.isEmpty()) {
   e131.pull(&packet);     // Pull packet from ring buffer
   newpacket = true;
- }
+}
 
  // If text send via Rest API (we kept it visible)
  // Until someone press a key
- if (text_received) {
+
+if (draw_received) {
+
+}
+else if (text_received) {
       matrix->setTextColor(matrix->Color(0, 255, 0));
       matrix->fillScreen(0);
       matrix->setCursor(x, mh);
@@ -363,5 +393,63 @@ int ssidScan(String command) {
     Serial.println(WiFi.SSID(i));
   }
   Serial.println("Scan end");
+  return 1;
+}
+
+String getValue(String data, char separator, int index) {
+  int found = 0;
+  int strIndex[] = {0, -1};
+  int maxIndex = data.length()-1;
+
+  for(int i=0; i<=maxIndex && found<=index; i++){
+    if(data.charAt(i)==separator || i==maxIndex){
+        found++;
+        strIndex[0] = strIndex[1]+1;
+        strIndex[1] = (i == maxIndex) ? i+1 : i;
+    }
+  }
+
+  return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+
+// https://forum.arduino.cc/t/split-string-to-array/593683/2
+// https://stackoverflow.com/questions/29671455/how-to-split-a-string-using-a-specific-delimiter-in-arduino
+int draw(String command) {
+  Serial.println("Drawing...");
+  Serial.println(command);
+  for(int i=0;i<25;i++) {
+    String value = getValue(command, ';' , i);
+    switch(value.toInt()) {
+      case 0:
+        matrixleds[i] = CRGB::Black;
+        break;
+      case 1:
+        matrixleds[i] = CRGB::Red;
+        break;
+      case 2:
+        matrixleds[i] = CRGB::Green;
+        break;
+      case 3:
+        matrixleds[i] = CRGB::Blue;
+        break;
+      case 4:
+        matrixleds[i] = CRGB::Yellow;
+        break;
+      case 5:
+        matrixleds[i] = CRGB::Orange;
+        break;
+      case 6:
+        matrixleds[i] = CRGB::Magenta;
+        break;
+      case 7:
+        matrixleds[i] = CRGB::Cyan;
+        break;
+      case 8:
+        matrixleds[i] = CRGB::White;
+        break;
+    }
+  }
+  draw_received = true;
+  FastLED.show();
   return 1;
 }

@@ -9,7 +9,8 @@
         "send":"Send",
         "reboot":"Reboot",
         "display":"Display",
-        "download":"Download"
+        "download":"Download",
+        "draw": "Draw"
     },
     "header": {
         "settings":"Settings",

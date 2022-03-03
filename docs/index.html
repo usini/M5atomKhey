@@ -45,42 +45,51 @@
 
     <div style="position:relative" class="rpgui-content">
     <div class="rpgui-container framed" style="position:relative;width:100%;">
-        <h1 style="font-size: 40px;"><span style="text-shadow:none;color:red">µ</span><span style="text-shadow:none;color:black;">sini</span> M5AtomKhey</h1>
+        <h1 style="font-size: 40px;">
+            <span style="text-shadow:none;color:red">µ</span><span style="text-shadow:none;color:black;">sini</span> M5AtomKhey</h1>
+
         <video style="padding:0px;position:relative; display: block; margin-left: auto;margin-right: auto;" width="320" height="240" autoplay muted loop>
             <source src="M5AtomKhey.mp4" type="video/mp4">
         </video>
-        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick="buy();"><p data-i18n="button.buy">Buy M5Atom</p></button>
+
+        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick="buy();">
+            <p data-i18n="button.buy">Buy M5Atom</p>
+        </button>
+
         <script type="module" src="https://unpkg.com/esp-web-tools@3.4.2/dist/web/install-button.js?module"></script>
         <esp-web-install-button id="installButton" manifest="bins/manifest.json">
-        <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick='showInstructions();' slot="activate"><p data-i18n="button.install">Install</p></button>
-        <span slot="unsupported">
-            <h1>
-            ⚠️ <span data-i18n="header.not-supported">Installer not supported by Firefox, use Edge/Chrome instead!</span>
-            <div class="rpgui-icon firefox"></div>
-            <div class="rpgui-icon edge"></div>
-            <div class="rpgui-icon chrome"></div>
-            </h1>
-        </span>
+            <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick='showInstructions();' slot="activate">
+                <p data-i18n="button.install">Install</p>
+            </button>
+
+            <span slot="unsupported">
+                <h1>
+                ⚠️ <span data-i18n="header.not-supported">Installer not supported by Firefox, use Edge/Chrome instead!</span>
+                <div class="rpgui-icon firefox"></div>
+                <div class="rpgui-icon edge"></div>
+                <div class="rpgui-icon chrome"></div>
+                </h1>
+            </span>
         </esp-web-install-button>
-        <br>
+
         <h1>
-        <audio id="music" style="position:relative;width:100%;" loop>
-            <source id="music_sauce" src="castle.mp3" type="audio/mpeg">
-        </audio>
-        
-            <div> 
-                <button onclick="play_pause_music()">🎶</button> 
-                <button onclick="document.getElementById('music').volume += 0.1">+</button> 
-                <button onclick="document.getElementById('music').volume -= 0.1">-</button> 
-              </div>
+            <audio id="music" style="position:relative;width:100%;" loop>
+                <source id="music_sauce" src="castle.mp3" type="audio/mpeg">
+            </audio>
+            <div>
+                <button onclick="play_pause_music()">🎶</button>
+                <button onclick="document.getElementById('music').volume += 0.1">+</button>
+                <button onclick="document.getElementById('music').volume -= 0.1">-</button>
+            </div>
         </h1>
-        
     </div>
 
     <div class="rpgui-container framed" style="position:relative">
         <h1 style="position:relative" class="rpgui-container framed-golden" data-i18n="header.settings"> Settings </h1>
 
-        <h1 id="instructions" style="display:none;"> ⚠️ <span data-i18n="text.instructions1">Wait for the RED Led to turn on</span> ⬛⬛⬛⬛🟥, <span data-i18n="text.instructions2">then</span></h1>
+        <h1 id="instructions" style="display:none;"> 
+            ⚠️ <span data-i18n="text.instructions1">Wait for the RED Led to turn on</span> ⬛⬛⬛⬛🟥, <span data-i18n="text.instructions2">then</span>
+        </h1>
 
         <h1 id="ip">
             <span data-i18n="text.instructions3">Click</span>
@@ -92,34 +101,34 @@
             <div class="rpgui-icon tag"></div>
             <span data-i18n="label.name">Name</span>
         </label>
-
         <input disabled id="name" type="text">
+
         <label>
             <div class="rpgui-icon wifi"></div>
             <span data-i18n="label.ssid">WiFi Network Name</span>
             <button data-i18n="button.scan" onclick="scanSSIDS()">Scan</button>
             </button>
         </label>
-
         <input disabled id="ssid" type="text">
+
         <label>
             <div class="rpgui-icon password"></div>
             <span data-i18n="label.password">WiFi Password</span>
         </label>
         <button id="showPass" data-i18n="button.show" onclick="showPassword()">Show</button>
-
         <input disabled id="pass" type="password">
+
         <label>
             <div class="rpgui-icon map"></div>
             <span data-i18n="label.timezone">Timezone</span>
         </label>
         <select disabled class="simple-select" id="timezone">
-
         </select>
 
         <button class="rpgui-button" data-i18n="button.connect" id="btn_connect" onclick="connect()">Connect</button>
         <button class="rpgui-button" data-i18n="button.send" disabled id="btn_send" onclick="setup()">Send</button>
         <button class="rpgui-button" data-i18n="button.reboot" disabled id="btn_reboot" onclick="reboot()">Reboot</button>
+
         <br>
         <div id="target"></div>
     </div>
@@ -130,6 +139,10 @@
         <input id="text" type="text">
         <button class="rpgui-button" data-i18n="button.display" disabled id="btn_text" onclick="text()">Display</button>
         <a href="" id="text_url"></a>
+        <button class="rpgui-button" data-i18n="button.draw" disabled id="btn_draw" onclick="draw()"></button>
+        <div id="qrcode"></div>
+
+
         <h1 data-i18n="header.links">Useful Links</h1>
         <li><a data-i18n="links.source" href="https://github.com/usini/M5AtomKhey">Source code</a></li>
         <li><a data-i18n="links.nodered" href="node-red-flow.json">Node-Red Example</a></li>
@@ -140,10 +153,11 @@
 
     <div style="position:relative;" class="rpgui-container framed">
         <h1 style="position:relative" class="rpgui-container framed-golden"> <img width="128" height="62" src="ledfx.png"></h1>
-        
+
         <button style="position:relative; display: block; margin-left: auto;margin-right: auto;" class="rpgui-button golden" onclick="downloadLedFx();">
                 <p data-i18n="button.download">Download</p>
         </button>
+
         <h1 style="position:relative"> <img style="width:100%" src="ledfx_instructions.png"></h1>
     </div>
 
@@ -151,6 +165,8 @@
     <script src="translator.min.js"></script>
     <script src="translate.js"></script>
     <script src="framework/rpgui.min.js"></script>
+    <script src="qrcode.min.js"></script>
+
     <script>
 
         ssids_list = [];
@@ -163,13 +179,30 @@
         music_play = false;
         document.getElementById('music').volume = 0.2;
 
-        function change_music(name){
+        function genQR(id){
+            qrcode = new QRCode(document.getElementById(id), {
+                text: "http://" + localStorage.getItem("m5atom_ip") + ":8080",
+                correctLevel: QRCode.CorrectLevel.L
+            });
+        }
+        if(localStorage.getItem("m5atom_ip") != null){
+            document.getElementById("btn_draw").disabled = false;
+            genQR("qrcode");
+        }
+
+        function draw(){
+            window.open("http://" + localStorage.getItem("m5atom_ip") + ":8080/");
+            target="_blank";
+            localStorage.getItem("m5atom_ip");
+        }
+
+        function change_music(name) {
             document.getElementById('music_sauce').src = name;
             document.getElementById('music').load();
             if(music_play){
                 document.getElementById('music').play();
             }
-            
+
         }
         function play_pause_music() {
             if(music_play){
@@ -181,12 +214,12 @@
             }
         }
 
-        function scanSSIDS(){
+        function scanSSIDS() {
             ssids_list = [];
             write("/scan");
         }
 
-        function showInstructions(){
+        function showInstructions() {
             change_music("attack.mp3");
             document.getElementById("instructions").style.display = "";
         }
@@ -203,12 +236,12 @@
         }
 
 
-        function buy(){
+        function buy() {
             window.open("https://shop.m5stack.com/products/atom-matrix-esp32-development-kit");
             target="_blank";
         }
 
-        function downloadLedFx(){
+        function downloadLedFx() {
             window.open("https://www.ledfx.app/downloads/dev/LedFx%20Installer.exe");
         }
 
@@ -230,7 +263,9 @@
                 document.getElementById("ssid").value = value.split(":")[1];
             }
             if(value.includes("IP:")) {
-                document.getElementById("ip").innerHTML = value.split(":")[1];
+                ip = value.split(":")[1]
+                document.getElementById("ip").innerHTML = ip.trim();
+                localStorage.setItem("m5atom_ip", ip.trim());
             }
             if(value.includes("NAME:")) {
                 document.getElementById("name").value = value.split(":")[1];
@@ -253,20 +288,19 @@
                     document.getElementById("ssid").add(opt);
                 }
             }
-
-            if(value == "Name set"){
+            if(value == "Name set") {
                 name_ok = true;
             }
-            if(value == "SSID set"){
+            if(value == "SSID set") {
                 ssid_ok = true;
             }
-            if(value == "Pass set"){
+            if(value == "Pass set") {
                 pass_ok = true;
             }
-            if(value == "Timezone set"){
+            if(value == "Timezone set") {
                 timezone_ok = true;
             }
-            if(timezone_ok && ssid_ok && pass_ok){
+            if(timezone_ok && ssid_ok && pass_ok) {
                 reboot();
                 name_ok = false;
                 timezone_ok = false;
@@ -305,14 +339,14 @@
         }
 
         // Send a message to the Matrix
-        async function write(text){
+        async function write(text) {
             console.log(text);
             await writer.write(text + "\r\n");
             // Allow the serial port to be closed later.
         }
 
         // Connect to Serial
-        function connect(){
+        function connect() {
             change_music("end.mp3");
             if (navigator.serial) {
                 connectSerial();
@@ -379,6 +413,7 @@
                 document.getElementById("btn_send").disabled = false;
                 document.getElementById("btn_reboot").disabled = false;
                 document.getElementById("btn_text").disabled = false;
+                document.getElementById("btn_draw").disabled = false;
 
             } catch (error) {
                 log.innerHTML = error;
