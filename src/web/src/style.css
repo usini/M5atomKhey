@@ -1,0 +1,45 @@
+body {
+  background-color: #4e4a4e;
+}
+
+table {
+  border-spacing: 1px;
+  border: 20px solid grey;
+  border-radius: 10px;
+}
+
+td {
+  border-style: solid;
+
+  border-image-repeat: repeat;
+  border-image-slice: 6 6 6 6;
+  border-image-width: 18px;
+  background-color: black;
+  border-width: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+/* https://www.w3schools.com/css/tryit.asp?filename=trycss_buttons_animate3 */
+button {
+  border: none;
+  width: 54px;
+  height: 32px;
+  color: rgba(242, 255, 225, 0.609);
+  border-radius: 15px;
+  box-shadow: 0 9px #999;
+}
+
+button:hover {
+  opacity: 0.5;
+}
+
+.command {
+  background-color: rgb(93, 45, 45);
+  width: auto;
+}
+
+.command:active {
+  box-shadow: 0 5px #666;
+  transform: translateY(4px);
+}

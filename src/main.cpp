@@ -5,169 +5,275 @@
     Version: Alpha v0.2
 
     E131 - Clock - Text Scroller in one package !
-    --> ⌨️ 🔴🟡🟢 🎶 Use LedFX to enjoy a tiny light show sync with your music or the sound of your keyboard!
+    --> ⌨️ 🔴🟡🟢 🎶 Use LedFX to enjoy a tiny light show sync with
+   your music or the sound of your keyboard!
     --> ⏲ Display the current time
-    --> 📟 Send text message using simple web requests (http://atom.local/text?param=Hello World)
+    --> 📟 Send text message using simple web requests
+   (http://atom.local/text?param=Hello World)
 */
 
 #include <Arduino.h>
-
-// Settings are saved on SPIFFS
-#include "SPIFFS.h"
-
-// Neopixels
-#include <Adafruit_GFX.h> // Generate text
-#include <Fonts/TomThumb.h> // A font small enough for the matrix
-#include <FastLED.h> // Control the neopixel LED
-#include <FastLED_NeoMatrix.h> // Manage a neopixel Matrix
 
 // Button
 #include <ezButton.h> // Easy way to manage buttons
 
 // Connectivity
+#include <ESPmDNS.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
-#include <ESPmDNS.h>
+
 #include <ESPAsyncWebServer.h>
+#include <SerialCommands.h>
+
 #include <ESPAsyncE131.h>
 #include <ezTime.h>
 
-#include <aREST.h> // Manage Rest Commands (Serial/Web)
-
+#include "matrix.h"
+#include "settings.h"
 #include "web/web_index.h"
-#include "web/web_script.h"
+#include "web/web_matrix.h"
+#include "web/web_qrcode.h"
+#include "web/web_style.h"
 
-
-// You can change this if you want the M5Atom Khey to connect to a WiFi network by default
+// You can change this if you want the M5Atom Khey to connect to a WiFi network
+// by default
 String ssid = "";
 String passphrase = "";
-
-/* LED Matrix
-    ⬛⬛⬛⬛
-    ⬛⬛⬛⬛
-    ⬛⬛⬛⬛
-    ⬛⬛⬛⬛
-    ⬛⬛⬛⬛
-*/
-#define PIN 27
-#define mw 5
-#define mh 5
-#define NUMMATRIX (mw*mh)
-int x    = mh; // Use to scroll the matrix
-
-CRGB matrixleds[NUMMATRIX];
-FastLED_NeoMatrix *matrix = new FastLED_NeoMatrix(matrixleds, mw, mh,
-    NEO_MATRIX_TOP     + NEO_MATRIX_RIGHT +
-    NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE );
 
 /* Button */
 ezButton button(39); // 🔘 Button behind the LED Matrix
 bool mode = false;
 
-/* WiFi Objects */
-WiFiServer server(80); // 🌐 Create a server on port 80
-AsyncWebServer web(8080);
-aREST rest = aREST();  // 🌐 Create a aREST object
+AsyncWebServer web(80);
 ESPAsyncE131 e131(10); // 🌐 Create a E131 (DMX) server
 
 /* String Objects */
 // TODO : Use char pointer instead of String
-String timeString = ""; // ⏲ Time display on led matrix
+String timeString = "";        // ⏲ Time display on led matrix
 String textString = "No text"; // 📄 Text display on led matrix
+int timeUpdate = 0;            // ⏱️ Time to update the time
 bool text_received = false;
 bool draw_received = false;
 
 Timezone myTZ;
-String tzString = "Europe/Paris"; // 🗺️ Timezone
-String nameString = "atom"; // 🏷️ Name of the device
+String tzString = "";   // 🗺️ Timezone
+String nameString = ""; // 🏷️ Name of the device
 
-// Use freeRTOS for the button (mostly to test if this make sense)
-TaskHandle_t Core0;
+settingsManager settings;
+matrixManager matrix;
 
-// 🌐 Rest Command (Serial/Web)
-int textControl(String command);
-int ssidControl(String command);
-int passControl(String command);
-int rebootControl(String command);
-int timeZoneControl(String command);
-int nameControl(String command);
-int ssidScan(String command);
-int draw(String command);
+void draw(String command);
 
-// 💾 Convert a Spiffs file into a variable (check if exists or create with default var)
-// Easier than manage a config file in JSON (probably not as correct)
-String SpiffsToVar(String file, String default_var) {
-    String var = "";
-    File f;
-    if(SPIFFS.exists(file)){
-      f = SPIFFS.open(file, FILE_READ);
-      var = f.readString();
-    } else {
-      f = SPIFFS.open(file, FILE_WRITE);
-      f.print(default_var);
-      var = default_var;
-    }
-    f.close();
-    return var;
+/* Serial Route */
+
+char serial_command_buffer_[256];
+SerialCommands serial_commands(&Serial, serial_command_buffer_,
+                               sizeof(serial_command_buffer_), "\r\n", "§");
+
+void cmd_text(SerialCommands *sender) {
+  char *text = sender->Next();
+  if (text == NULL) {
+    sender->GetSerial()->println("No text try --> text§Hello World");
+
+  } else {
+    matrix.setTextColor(0, 255, 0);
+    matrix.setText(text);
+    Serial.println("OK");
+    text_received = true;
+  }
 }
 
-// 💾 Setup all variables (SSID/PASS/TIMEZONE/NAME)
-void spiffsSetup() {
-  if (!SPIFFS.begin(true)) {
+void cmd_reboot(SerialCommands *sender) {
+  Serial.println("Rebooting...");
+  ESP.restart();
+}
 
-    //⚪ White Led means formatting in progress
-    matrixleds[0].r = 255;
-    matrixleds[0].g = 255;
-    matrixleds[0].b = 255;
-    FastLED.show();
+void cmd_set(SerialCommands *sender) {
+  char *arg = sender->Next();
+  if (arg == NULL) {
+    sender->GetSerial()->println(
+        "No arg set (ssid/pass/name/tz) --> set§ssid§myssid");
+  } else {
+    char *value = sender->Next();
+    settings.write("/" + String(arg), value);
+  }
+}
 
-    Serial.println("SPIFFS: Formatting ... Please Wait...");
-    SPIFFS.format();
+void cmd_scan(SerialCommands *sender) {
+  int n = WiFi.scanNetworks();
+  for (int i = 0; i < n; i++) {
+    Serial.println("SSIDS:" + WiFi.SSID(i));
+  }
+  Serial.println("Scan end");
+}
+
+void cmd_draw(SerialCommands *sender) {
+  char *command = sender->Next();
+  if (command == NULL) {
+    sender->GetSerial()->println(
+        "No draw value --> draw§1111111111111111111111111");
+  } else {
+    draw(command);
+    draw_received = true;
+  }
+}
+
+void cmd_unrecognized(SerialCommands *sender, const char *cmd) {
+  sender->GetSerial()->print("Unrecognized command [");
+  sender->GetSerial()->print(cmd);
+  sender->GetSerial()->println("]");
+}
+
+SerialCommand serialText("text", cmd_text);
+SerialCommand serialReboot("reboot", cmd_reboot);
+SerialCommand serialSet("set", cmd_set);
+SerialCommand serialScan("scan", cmd_scan);
+SerialCommand serialDraw("draw", cmd_draw);
+
+void createSerialRoute() {
+  serial_commands.SetDefaultHandler(cmd_unrecognized);
+  serial_commands.AddCommand(&serialText);
+  serial_commands.AddCommand(&serialReboot);
+  serial_commands.AddCommand(&serialSet);
+  serial_commands.AddCommand(&serialScan);
+  serial_commands.AddCommand(&serialDraw);
+}
+
+/* Web Route */
+
+void createRoute() {
+
+  web.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(
+        200, "text/html", APP_INDEX, sizeof(APP_INDEX));
+    response->addHeader("content-encoding", "gzip");
+    request->send(response);
+  });
+
+  web.on("/qrcode.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(
+        200, "application/javascript", APP_QRCODE, sizeof(APP_QRCODE));
+    response->addHeader("content-encoding", "gzip");
+    request->send(response);
+  });
+
+  web.on("/matrix.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(
+        200, "application/javascript", APP_MATRIX, sizeof(APP_MATRIX));
+    response->addHeader("content-encoding", "gzip");
+    request->send(response);
+  });
+
+  web.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response =
+        request->beginResponse_P(200, "text/css", APP_STYLE, sizeof(APP_STYLE));
+    response->addHeader("content-encoding", "gzip");
+    request->send(response);
+  });
+
+  web.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/plain", "OK");
     ESP.restart();
-  }
+  });
 
-  Serial.println("SPIFFS: Reading settings");
-  ssid = SpiffsToVar("/ssid","");
-  passphrase = SpiffsToVar("/pass","");
-  tzString = SpiffsToVar("/tz","Europe/Paris");
-  nameString = SpiffsToVar("/name","atom");
-}
+  web.on("/type", HTTP_GET, [](AsyncWebServerRequest *request) {
+    #ifdef M5ATOM
+    const char* type = "M5Atom";
+    #else
+    const char* type = "MATRIX256";
+    #endif
+    AsyncWebServerResponse *response =
+        request->beginResponse_P(200, "text/plain", type);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Expose-Headers", "*");
+    response->addHeader("Access-Control-Allow-Credentials", "true");
+    request->send(response);
+    request->send(response);
+  });
 
-// Core0 task (just for the button)
-void backTask( void * pvParameters) {
-  for(;;) {
-    button.loop();
-    // 🔘 Button pressed and released
-    if (button.isReleased()) {
-      if (text_received) {
-        text_received = false;
-      } else if (draw_received) {
-        draw_received = false;
-      } else {
-        mode = !mode;
-        Serial.print("Mode: ");
-        if(mode){
-          Serial.println(" E131");
-        } else {
-          Serial.println(" Clock");
-        }
-      }
+  web.on("/mode", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if(request->hasParam("clock")) {
+      text_received = false;
+      draw_received = false;
+      matrix.setTextColor(0, 0, 255);
+      mode = false;
+    } else if(request->hasParam("e131")){
+      text_received = false;
+      draw_received = false;
+      mode = true;
+    } else {
+      text_received = false;
+      draw_received = false;
     }
-  }
+    request->send(200, "text/plain", "OK");
+  });
+
+  web.on("/show", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (request->hasParam("text")) {
+      matrix.setTextColor(0, 255, 0);
+      matrix.setText(request->getParam("text")->value());
+      Serial.println(request->getParam("text")->value());
+      text_received = true;
+      request->send(200, "text/plain", "OK");
+    } else {
+      request->send(200, "text/plain", "No arg -> /show?text=hello world");
+    }
+  });
+
+  web.on("/draw", HTTP_GET, [](AsyncWebServerRequest *request) {
+    const char *answer = "No args -> /draw?pixels=1";
+    if (request->hasParam("pixels")) {
+      draw(request->getParam("pixels")->value());
+      answer = "DRAW OK";
+    }
+    AsyncWebServerResponse *response =
+        request->beginResponse_P(200, "text/plain", answer);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Expose-Headers", "*");
+    response->addHeader("Access-Control-Allow-Credentials", "true");
+    request->send(response);
+  });
+
+  web.on("/set", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (request->hasParam("ssid")) {
+      settings.write("/ssid", request->getParam("ssid")->value());
+      request->send(200, "text/plain", "SSID SET");
+    }
+
+    if (request->hasParam("pass")) {
+      settings.write("/pass", request->getParam("pass")->value());
+      request->send(200, "text/plain", "PASS SET");
+    }
+
+    if (request->hasParam("name")) {
+      settings.write("/name", request->getParam("name")->value());
+      request->send(200, "text/plain", "NAME SET");
+    }
+
+    if (request->hasParam("tz")) {
+      String tzString = request->getParam("tz")->value();
+      settings.write("/tz", tzString);
+      request->send(200, "text/plain", "TZ SET");
+    }
+  });
+
+  web.on("/scan", HTTP_GET, [](AsyncWebServerRequest *request) {
+    int n = WiFi.scanNetworks();
+    String ssids = "";
+    for (int i = 0; i < n; i++) {
+      String ssids = "SSIDS:" + WiFi.SSID(i) + "\n";
+    }
+    request->send(200, "text/plain", ssids);
+  });
+
+  web.begin();
 }
 
 void setup() {
   Serial.begin(115200);
-
-  // Setup matrix
-  // ⚠️ Brightness must be kept low or the M5Atom will be really hot! 🥵
-  FastLED.addLeds<NEOPIXEL, PIN>(matrixleds, NUMMATRIX);
-  FastLED.setBrightness(40); // Brightness mus
-  matrix->begin();
-  matrix->setTextWrap(false);
-  matrix->setFont(&TomThumb);
-  matrix->setBrightness(40);
-  matrix->setTextColor(matrix->Color(255, 0, 0));
+  button.setDebounceTime(100);
+  matrix.begin(40); // 🔘 Initialize the LED Matrix (r,g,b,brightness);
+  matrix.setTextColor(0, 0, 255);
 
   /* Blue Led means startup in progress
     ⬛⬛⬛🟦
@@ -176,26 +282,20 @@ void setup() {
     ⬛⬛⬛⬛
     ⬛⬛⬛⬛
   */
-  matrixleds[0].r = 0;
-  matrixleds[0].g = 0;
-  matrixleds[0].b = 255;
-  FastLED.show();
+  matrix.blue();
 
   //💾 Setup Spiffs files (use for ⚙️ settings)
-  spiffsSetup();
+  Serial.println("SPIFFS: Reading settings");
+  settings.begin();
+  ssid = settings.read("/ssid", "");
+  passphrase = settings.read("/pass", "");
+  tzString = settings.read("/tz", "");
+  nameString = settings.read("/name", "atom");
 
   Serial.print("NAME:");
   Serial.println(nameString);
 
-  // 🌐 Generate REST functions and callback
-  rest.function("text", textControl);
-  rest.function("ssid",ssidControl);
-  rest.function("pass",passControl);
-  rest.function("timezone",timeZoneControl);
-  rest.function("reboot",rebootControl);
-  rest.function("name",nameControl);
-  rest.function("scan",ssidScan);
-  rest.function("draw",draw);
+  createSerialRoute();
 
   // Starting WiFi
   WiFi.mode(WIFI_STA);
@@ -203,28 +303,27 @@ void setup() {
   Serial.println(ssid);
 
   WiFi.begin(ssid.c_str(), passphrase.c_str());
-  if(ssid == "") {
+  if (ssid == "") {
     Serial.println("Waiting for SSID to be set...");
   }
 
-    /* Red Led means WiFi connection started ()
-    ⬛⬛⬛🟥
-    ⬛⬛⬛⬛
-    ⬛⬛⬛⬛
-    ⬛⬛⬛⬛
-    ⬛⬛⬛⬛
-  */
-  matrixleds[0].r = 255;
-  matrixleds[0].g = 0;
-  matrixleds[0].b = 0;
-  FastLED.show();
+  /* Red Led means WiFi connection started ()
+  ⬛⬛⬛🟥
+  ⬛⬛⬛⬛
+  ⬛⬛⬛⬛
+  ⬛⬛⬛⬛
+  ⬛⬛⬛⬛
+*/
+  matrix.red();
 
   // 📡 Wait for connection to established
   // 📲 Rest Serial is active to change settings and reboot
   while (WiFi.status() != WL_CONNECTED) {
-    rest.handle(Serial);
+    serial_commands.ReadSerial();
     delay(10);
   }
+
+  createRoute();
 
   // Display IP/Name (this is used by the Web Installer)
   Serial.print("IP: ");
@@ -234,222 +333,85 @@ void setup() {
     return;
   }
 
-
   // Start NTP and wait for time
   waitForSync();
+  Serial.print("TZ:");
+  Serial.println(tzString);
   myTZ.setLocation(F(tzString.c_str()));
-
-  web.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", APP_INDEX, sizeof(APP_INDEX));
-    response->addHeader("content-encoding", "gzip");
-    request->send(response);
-  });
-
-  web.on("/qrcode.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "application/javascript", APP_SCRIPT, sizeof(APP_SCRIPT));
-    response->addHeader("content-encoding", "gzip");
-    request->send(response);
-  });
-  web.begin();
-
-  // Start Arest Web
-  server.begin();
 
   // Start E131
   if (e131.begin(E131_UNICAST))
     Serial.println("E131: READY");
   else
     Serial.println("ERROR: E131 FAILED");
-
-  // Start Core0 Task (BackTask)
-  disableCore0WDT();
-  xTaskCreatePinnedToCore(backTask, "BackTask", 10000, NULL, 1, &Core0, 0);
 }
 
 void loop() {
+  button.loop();
+  serial_commands.ReadSerial();
 
-  /* Rest API Loop */
-  WiFiClient client = server.available();
-  rest.handle(client);
-  rest.handle(Serial);
-
-  /* E131 Loop */
-  bool newpacket = false;
-  e131_packet_t packet;
-if (!e131.isEmpty()) {
-  e131.pull(&packet);     // Pull packet from ring buffer
-  newpacket = true;
-}
-
- // If text send via Rest API (we kept it visible)
- // Until someone press a key
-
-if (draw_received) {
-
-}
-else if (text_received) {
-      matrix->setTextColor(matrix->Color(0, 255, 0));
-      matrix->fillScreen(0);
-      matrix->setCursor(x, mh);
-      matrix->print(textString);
-      int t_length = textString.length() * 4;
-
-      if (--x < -t_length) {
-        x = matrix->width();
-      }
-
-      matrix->show();
-      delay(100); // ToDo replace with millis()
+  // 🔘 Button pressed and released
+  if (button.isReleased()) {
+    if (text_received) {
+      Serial.println("Disabled text");
+      matrix.setTextColor(0, 0, 255);
+      timeString = myTZ.dateTime("H:i");
+      matrix.setText(timeString);
+      text_received = false;
+    } else if (draw_received) {
+      Serial.println("Disabled draw");
+      matrix.setTextColor(0, 0, 255);
+      timeString = myTZ.dateTime("H:i");
+      matrix.setText(timeString);
+      draw_received = false;
     } else {
-      // Mode = True is E131 controller
+      mode = !mode;
+      Serial.print("Mode: ");
       if (mode) {
-        if (newpacket) {
-          int pixel = 0;
-          for (int i = 1; i <= 75; i = i + 3) {
-            matrixleds[pixel].r = packet.property_values[i];
-            matrixleds[pixel].g = packet.property_values[i + 1];
-            matrixleds[pixel].b = packet.property_values[i + 2];
-            pixel++;
-          }
-          FastLED.show();
-        }
-      } else { // Mode = False is Clock
-        matrix->setTextColor(matrix->Color(0, 0, 255));
-        timeString = myTZ.dateTime("H:i"); //Format Time
-        matrix->fillScreen(0);
-        matrix->setCursor(x, mh);
-        int t_length = timeString.length() * 4;
-        matrix->print(timeString);
-        if (--x < -t_length) {
-          x = matrix->width();
-        }
-        matrix->show();
-        delay(100); // ToDo replace with millis()
+        Serial.println(" E131");
+
+      } else {
+        Serial.println(" Clock");
+        matrix.setTextColor(0, 0, 255);
       }
     }
   }
 
-// Show Text http://atom.local/text?param=Hello World
-int textControl(String command) {
-  textString = command;
-  text_received = true;
-  Serial.println(textString);
-  return 1;
-}
-
-// Change SSID http://atom.local/ssid?param=MySSID
-int ssidControl(String command) {
-  ssid = command;
-  Serial.println("SSID set");
-  File f = SPIFFS.open("/ssid", FILE_WRITE);
-  f.print(ssid);
-  f.close();
-  return 1;
-}
-
-// Change Pass http://atom.local/pass?param=My Complex PassPhrase
-int passControl(String command) {
-  passphrase = command;
-  Serial.println("Pass set");
-  File f = SPIFFS.open("/pass", FILE_WRITE);
-  f.print(passphrase);
-  f.close();
-  return 1;
-}
-
-// Change TimeZone http://atom.local/timezone?param=Europe-Paris
-int timeZoneControl(String command) {
-  tzString = command;
-  tzString.replace("-", "/");
-  Serial.println("Timezone set");
-  File f = SPIFFS.open("/tz", FILE_WRITE);
-  f.print(tzString);
-  f.close();
-  return 1;
-}
-
-// Change Name http://atom.local/name?param=atom
-int nameControl(String command) {
-  nameString = command;
-  Serial.println("Name set");
-  File f = SPIFFS.open("/name", FILE_WRITE);
-  f.print(nameString);
-  f.close();
-  return 1;
-}
-
-// Reboot http://atom.local/reboot
-int rebootControl(String command) {
-  Serial.println("reboot");
-  ESP.restart();
-  return 1;
-}
-
-int ssidScan(String command) {
-  Serial.println("Scanning SSID");
-  int n = WiFi.scanNetworks();
-  for(int i=0;i<n;i++) {
-    Serial.print("SSIDS:");
-    Serial.println(WiFi.SSID(i));
-  }
-  Serial.println("Scan end");
-  return 1;
-}
-
-String getValue(String data, char separator, int index) {
-  int found = 0;
-  int strIndex[] = {0, -1};
-  int maxIndex = data.length()-1;
-
-  for(int i=0; i<=maxIndex && found<=index; i++){
-    if(data.charAt(i)==separator || i==maxIndex){
-        found++;
-        strIndex[0] = strIndex[1]+1;
-        strIndex[1] = (i == maxIndex) ? i+1 : i;
+  if (draw_received) {
+  } else if (text_received) {
+    matrix.scroll();
+  } else {
+    // Mode = True is E131 controller
+    if (mode) {
+      e131_packet_t packet;
+      if (!e131.isEmpty()) {
+        e131.pull(&packet);
+        int pixel = 0;
+        for (int i = 1; i <= NUMMATRIX * 3; i = i + 3) {
+          matrix.setPixel(pixel, packet.property_values[i],
+                          packet.property_values[i + 1],
+                          packet.property_values[i + 2]);
+          pixel++;
+        }
+        matrix.update();
+      }
+    } else { // Mode = False is Clock
+      if (millis() > timeUpdate) {
+        timeString = myTZ.dateTime("H:i");
+        matrix.setText(timeString);
+        timeUpdate = millis() + 1000;
+      }
+      matrix.scroll();
     }
   }
-
-  return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
-// https://forum.arduino.cc/t/split-string-to-array/593683/2
-// https://stackoverflow.com/questions/29671455/how-to-split-a-string-using-a-specific-delimiter-in-arduino
-int draw(String command) {
+void draw(String command) {
   Serial.println("Drawing...");
   Serial.println(command);
-  for(int i=0;i<25;i++) {
-    String value = getValue(command, ';' , i);
-    switch(value.toInt()) {
-      case 0:
-        matrixleds[i] = CRGB::Black;
-        break;
-      case 1:
-        matrixleds[i] = CRGB::Red;
-        break;
-      case 2:
-        matrixleds[i] = CRGB::Green;
-        break;
-      case 3:
-        matrixleds[i] = CRGB::Blue;
-        break;
-      case 4:
-        matrixleds[i] = CRGB::Yellow;
-        break;
-      case 5:
-        matrixleds[i] = CRGB::Orange;
-        break;
-      case 6:
-        matrixleds[i] = CRGB::Magenta;
-        break;
-      case 7:
-        matrixleds[i] = CRGB::Cyan;
-        break;
-      case 8:
-        matrixleds[i] = CRGB::White;
-        break;
-    }
-  }
+  matrix.clear();
+  matrix.draw(command);
   draw_received = true;
-  FastLED.show();
-  return 1;
+  matrix.update();
+  Serial.println("DRAW OK");
 }

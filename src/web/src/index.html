@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+  <title>M5AtomKhey</title>
+  <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <table id="matrix_table"></table>
+  <br>
+  <button id="color_0" onclick="matrix.changeColor(0,this)" style="background-color: black;">0</button>
+  <button id="color_1" onclick="matrix.changeColor(1,this)" style="background-color: #FF99A9;">1</button>
+  <button id="color_2" onclick="matrix.changeColor(2,this)" style="background-color: #92F294;">2</button>
+  <button id="color_3" onclick="matrix.changeColor(3,this)" style="background-color: #a7b7de;">3</button>
+  <button id="color_4" onclick="matrix.changeColor(4,this)" style="background-color: #EADA9A">4</button>
+  <button id="color_5" onclick="matrix.changeColor(5,this)" style="background-color: #FF9356;">5</button>
+  <button id="color_6" onclick="matrix.changeColor(6,this)" style="background-color: #D8b1f0;">6</button>
+  <button id="color_7" onclick="matrix.changeColor(7,this)" style="background-color:  #88CEFB;">7</button>
+  <button id="color_8" onclick="matrix.changeColor(8,this)" style="color:black;background-color: white;">8</button>
+  <br><br>
+  <button class="command" onclick="matrix.mode('clock')">⏲ Clock</button>
+  <button class="command" onclick="matrix.mode('e131')">⏹ E131</button>
+  <button class="command" onclick="matrix.savePresets()">💾 Save</button>
+  <button class="command" onclick="goBack()">🔙 Back</button>
+  <br><br>
+  <div id="presets"></div>
+  <br><br>
+  <input type="text" id="value" style="width:50%;" value="">
+  <br><br>
+  <div id="qrcode"></div>
+  <div id="error"></div>
+  <script src="qrcode.min.js"></script>
+  <script src="matrix.js"></script>
+  <script>
+    matrix = new MatrixManager();
+  </script>
+</body>
